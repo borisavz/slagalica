@@ -5,37 +5,28 @@
 #include <time.h>
 #include <stdbool.h>
 #include <unistd.h>
+FILE *otvori_recnik();
 int proveri_rec(char *, char *, int);
 bool nadji_rec(char *, FILE *);
 void promeni_znak(char *, char, char);
 int main(int argc, int *argv[]) {
     int i, ii, iii, iiii, potrefio_slova, broj_pokusaja = 10;
-    char slova[20], rec[21], nasa_rec[21], *putanja;
+    char slova[20], rec[21], nasa_rec[21];
     bool potrefio = false;
     FILE *recnik;
-    puts("Koristi -h zastavicu pri pokretanju za pomoc.\n");
-    if((recnik = fopen("recnik.txt", "r")) == NULL) {
-        printf("Unesi putanju recnika: ");
-        putanja = malloc(300 * sizeof(char));
-        fgets(putanja, 300, stdin);
-        *(putanja + strlen(putanja) - 1) = '\0';
-        if((recnik = fopen(putanja, "r")) == NULL) {
-            perror("\nGreska");
-            printf("Kod greske: %d", errno);
-            getchar();
-            exit(errno);
-        }
-        free(putanja);
-    }
     while((i = getopt(argc, argv, "np:h")) != -1)
         switch(i) {
             case 'n':
+                puts("PROVERA RECI\n------");
+                recnik = otvori_recnik();
                 printf("Unesi rec: ");
                 fgets(rec, 21, stdin);
                 if(nadji_rec(rec, recnik) == true)
-                    puts("Rec se nalazi u recniku.\n");
+                    puts("\nRec se nalazi u recniku.");
                 else
-                    puts("Rec se ne nalazi u recniku.\n");
+                    puts("\nRec se ne nalazi u recniku.");
+                getchar();
+                exit(0);
                 break;
             case 'p':
                 broj_pokusaja = atoi(optarg);
@@ -43,8 +34,13 @@ int main(int argc, int *argv[]) {
             case 'h':
                 puts("-n proveri da li se rec nalazi u recniku");
                 puts("-p promeni broj pokusaja");
+                getchar();
+                exit(0);
                 break;
         }
+    puts("Koristi -h zastavicu pri pokretanju za pomoc.");
+    puts("Kucaj 0 da prekines igru.\n");
+    recnik = otvori_recnik();
     srand(time(NULL));
     printf("\nSlova:\n\t|");
     for(i = 0; i < 20; i++) {
@@ -52,7 +48,7 @@ int main(int argc, int *argv[]) {
         promeni_znak(&slova[i], 'q', 'a');
         promeni_znak(&slova[i], 'w', 'z');
         promeni_znak(&slova[i], 'x', 'a');
-        promeni_znak(&slova[i], 'y', 'u');
+        promeni_znak(&slova[i], 'y', 'z');
         printf("%c|", slova[i]);
     }
     while((potrefio == false) && (fgets(nasa_rec, 21, recnik) != NULL))
@@ -68,6 +64,8 @@ int main(int argc, int *argv[]) {
         potrefio = false;
         printf("\nUnesi rec: ");
         fgets(rec, 31, stdin);
+        if(rec[0] == '0')
+            exit(0);
         for(ii = 0; rec[ii] != '\0'; ii++)
             rec[i] = tolower(rec[i]);
         potrefio_slova = proveri_rec(rec, slova, ii - 1);
@@ -90,6 +88,22 @@ int main(int argc, int *argv[]) {
     }
     printf("Nasa rec: %s", nasa_rec);
     return 0;
+}
+FILE *otvori_recnik() {
+    FILE *recnik;
+    char putanja[201];
+    if((recnik = fopen("recnik.txt", "r")) == NULL) {
+        printf("Unesi putanju recnika: ");
+        fgets(putanja, 301, stdin);
+        putanja[strlen(putanja) - 1] = '\0';
+        if((recnik = fopen(putanja, "r")) == NULL) {
+            perror("\nGreska");
+            printf("Kod greske: %d", errno);
+            getchar();
+            exit(errno);
+        }
+    }
+    return recnik;
 }
 int proveri_rec(char *rec, char *slova, int duzina_reci) {
     int i, ii, potrefio_slova = 0;
