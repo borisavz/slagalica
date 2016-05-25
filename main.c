@@ -6,18 +6,21 @@
 #include <stdbool.h>
 #include <unistd.h>
 #define SASTAVIO 11
+#define IZLAZ 22
 FILE *otvori_recnik();
 int proveri_rec(const char *, const char *, int);
-bool nadji_rec(const char *, const FILE *);
+bool nadji_rec(const char *, FILE *);
+bool hoces_neces(const char *);
 void promeni_znak(char *, char, char);
-int main(int argc, int *argv[]) {
-    int i = 0, ii, iii, iiii, potrefio_slova, broj_pokusaja = 10;
+int main(int argc, char *argv[]) {
+    int i, ii, potrefio_slova, broj_pokusaja = 10;
     char slova[20], rec[21], nasa_rec[21];
+    bool nasao = false;
     FILE *recnik;
     while((i = getopt(argc, argv, "np:h")) != -1)
         switch(i) {
             case 'n':
-                puts("PROVERA RECI\n------");
+                puts("PROVERA RECI\n-------");
                 recnik = otvori_recnik();
                 printf("Unesi rec: ");
                 fgets(rec, 21, stdin);
@@ -37,7 +40,8 @@ int main(int argc, int *argv[]) {
                 break;
         }
     puts("Koristi -h zastavicu pri pokretanju za pomoc.");
-    puts("Kucaj 0 da prekines igru.\n");
+    puts("Kucaj 0 da prekines igru.");
+    printf("Broj pokusaja: %d\n\n", broj_pokusaja);
     recnik = otvori_recnik();
     srand(time(NULL));
     printf("\nSlova:\n\t|");
@@ -60,30 +64,28 @@ int main(int argc, int *argv[]) {
     }
     for(i = 1; i <= broj_pokusaja; i++) {
         rewind(recnik);
+        nasao = false;
         printf("\nUnesi rec: ");
         fgets(rec, 31, stdin);
-        if(rec[0] == '0')
-            i = 12;
         for(ii = 0; rec[ii] != '\0'; ii++)
             rec[ii] = tolower(rec[ii]);
         potrefio_slova = proveri_rec(rec, slova, ii - 1);
-        if(potrefio_slova != 0)
+        if(potrefio_slova != 0 && potrefio_slova != IZLAZ)
             printf("%d %s u redu.\n", potrefio_slova,
                 potrefio_slova == 1 ? "slovo nije" : "slova nisu");
-        else if(nadji_rec(rec, recnik) == true) {
-            puts("Mozemo da prihvatimo rec. Da li ste sigurni? y/n");
-            scanf("%c", &ii);
-            getchar();
-            if(tolower(ii) == 'y')
-                i = SASTAVIO;
-        } else
+        else if(potrefio_slova == IZLAZ)
+            i = hoces_neces("Da li ste sigurni? y/n") == true ? IZLAZ : --i;
+        else if((nasao = nadji_rec(rec, recnik)) == true &&
+            hoces_neces("Mozemo da prihvatimo rec. Da li ste sigurni? y/n") == true)
+            i = SASTAVIO;
+        else if(nasao == false && i != IZLAZ)
             puts("Ne mozemo da prihvatimo rec.\n");
-        if(i > 10)
-            printf("\n%s\n------------\n", i == SASTAVIO ? "Bravo!" : "");
-        else
+        if(i == SASTAVIO)
+            puts("Bravo!");
+        else if(i != IZLAZ)
             printf("Ostalo pokusaja: %d\n", broj_pokusaja - i);
     }
-    printf("Nasa rec: %s", nasa_rec);
+    printf("\n-------\nNasa rec: %s", nasa_rec);
     fseek(stdin, 0, SEEK_END);
     getchar();
     return 0;
@@ -112,7 +114,7 @@ int proveri_rec(const char *rec, const char *slova, int duzina_reci) {
         *(preskoci_rec + i) = false;
     }
     if(*rec == '0')
-        return 0;
+        return IZLAZ;
     for(i = 0; i < 20; i++)
         for(ii = 0; ii < duzina_reci; ii++)
             if(*(slova + i) == *(rec + ii) && preskoci_slovo[i] == false &&
@@ -123,12 +125,21 @@ int proveri_rec(const char *rec, const char *slova, int duzina_reci) {
             }
     return duzina_reci - potrefio_slova;
 }
-bool nadji_rec(const char *rec, const FILE *recnik) {
+bool nadji_rec(const char *rec, FILE *recnik) {
     char rec_iz_recnika[21];
     while(fgets(rec_iz_recnika, 21, recnik) != NULL)
         if(strcmp(rec, rec_iz_recnika) == 0)
             return true;
     return false;
+}
+bool hoces_neces(const char *poruka) {
+    char c;
+    puts(poruka);
+    do
+        scanf("%c", &c);
+    while(c != 'y' && c != 'n');
+    getchar();
+    return c == 'y' ? true : false;
 }
 void promeni_znak(char *a, char b, char c) {
     if(*a == b)
