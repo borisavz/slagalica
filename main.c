@@ -5,8 +5,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <unistd.h>
-#define SASTAVIO 11
-#define IZLAZ 22
+#define IZLAZ -1
 FILE *otvori_recnik();
 int proveri_rec(const char *, const char *, int);
 bool nadji_rec(const char *, FILE *);
@@ -15,7 +14,6 @@ void promeni_znak(char *, char, char);
 int main(int argc, char *argv[]) {
     int i, ii, potrefio_slova, broj_pokusaja = 10;
     char slova[20], rec[21], nasa_rec[21];
-    bool nasao = false;
     FILE *recnik;
     while((i = getopt(argc, argv, "np:h")) != -1)
         switch(i) {
@@ -53,37 +51,40 @@ int main(int argc, char *argv[]) {
         promeni_znak(&slova[i], 'y', 'z');
         printf("%c|", slova[i]);
     }
-    i = 0;
-    while(i == 0 && fgets(nasa_rec, 21, recnik) != NULL)
-        if(proveri_rec(nasa_rec, slova, strlen(nasa_rec) - 1) == 0)
-            i = 1;
-    if(i == 0) {
+    i = false;
+    while(fgets(nasa_rec, 21, recnik) != NULL)
+        if(proveri_rec(nasa_rec, slova, strlen(nasa_rec) - 1) == 0) {
+            i = true;
+            break;
+        }
+    if(i == false) {
         puts("\n\nOd datih slova se ne moze sastaviti rec.\n");
         getchar();
         exit(0);
     }
     for(i = 1; i <= broj_pokusaja; i++) {
         rewind(recnik);
-        nasao = false;
         printf("\nUnesi rec: ");
-        fgets(rec, 31, stdin);
+        fgets(rec, 21, stdin);
         for(ii = 0; rec[ii] != '\0'; ii++)
             rec[ii] = tolower(rec[ii]);
         potrefio_slova = proveri_rec(rec, slova, ii - 1);
         if(potrefio_slova != 0 && potrefio_slova != IZLAZ)
             printf("%d %s u redu.\n", potrefio_slova,
                 potrefio_slova == 1 ? "slovo nije" : "slova nisu");
-        else if(potrefio_slova == IZLAZ)
-            i = hoces_neces("Da li ste sigurni? y/n") == true ? IZLAZ : --i;
-        else if((nasao = nadji_rec(rec, recnik)) == true &&
-            hoces_neces("Mozemo da prihvatimo rec. Da li ste sigurni? y/n") == true)
-            i = SASTAVIO;
-        else if(nasao == false && i != IZLAZ)
+        else if(potrefio_slova == IZLAZ) {
+            if(hoces_neces("Da li ste sigurni? y/n") == true)
+                break;
+            else
+                i--;
+        } else if(nadji_rec(rec, recnik) == true) {
+            if(hoces_neces("Mozemo da prihvatimo rec. Da li ste sigurni? y/n") == true) {
+                puts("Bravo!");
+                break;
+            }
+        } else
             puts("Ne mozemo da prihvatimo rec.\n");
-        if(i == SASTAVIO)
-            puts("Bravo!");
-        else if(i != IZLAZ)
-            printf("Ostalo pokusaja: %d\n", broj_pokusaja - i);
+        printf("Ostalo pokusaja: %d\n", broj_pokusaja - i);
     }
     printf("\n-------\nNasa rec: %s", nasa_rec);
     fseek(stdin, 0, SEEK_END);
@@ -136,9 +137,9 @@ bool hoces_neces(const char *poruka) {
     char c;
     puts(poruka);
     do
-        scanf("%c", &c);
+        c = getchar();
     while(c != 'y' && c != 'n');
-    getchar();
+    fseek(stdin, 0, SEEK_END);
     return c == 'y' ? true : false;
 }
 void promeni_znak(char *a, char b, char c) {
